@@ -8,12 +8,12 @@ import json
 
 
 FIREFOX_DRIVER_PATH = Path("../../bin/geckodriver")
-ATCC_CELLLINES_PRIMARY_STEM_PRODUCTS_CATALOG_URL = r"https://www.lgcstandards-atcc.org/search#sort=relevancy&f:contentTypeFacetATCC=[Products]&f:productcategoryFacet=[Cell%20Lines%20%26%20Hybridomas,Primary%20Cells,Stem%20Cells]" 
-OUTPUT_PATH = Path("../../data/atcc/cellline_links.json")
+ATCC_CELLLINES_PRIMARY_STEM_PRODUCTS_NONHUMAN_CATALOG_URL = r"https://www.lgcstandards-atcc.org/search#sort=relevancy&f:contentTypeFacetATCC=[Products]&f:productcategoryFacet=[Cell%20Lines%20%26%20Hybridomas,Primary%20Cells,Stem%20Cells]&f:celloriginFacet=[Mouse,Rat,Other%20Animal,hamster,monkey,canine,bovine,rabbit,fish,Insect,horse]" 
+LINKS_PATH = Path("../../data/atcc/links_nonhuman.json")
 
 FORCE_EXECUTION = True
 LIMIT_CATALOG_PAGES = None
-PAGE_LOAD_TIMEOUT = 1
+PAGE_LOAD_TIMEOUT = 5
 
 
 def build_browser(
@@ -88,7 +88,10 @@ def go_next_page(browser: Firefox) -> bool:
         return True
     return False
 
-def crawl(browser: Firefox, limit: int or None = None):
+def crawl(browser: Firefox,
+    limit = None,
+    output_path: Path = LINKS_PATH):
+
     cellline_links = set()
     catalog_page_counter = 0
     while go_next_page(browser):
@@ -103,15 +106,15 @@ def crawl(browser: Firefox, limit: int or None = None):
             and catalog_page_counter == limit
         )
         if has_reached_limit:
-            end_crawl(browser, cellline_links)
+            end_crawl(browser, cellline_links, output_path)
             break
     else:
-        end_crawl(browser, cellline_links)
+        end_crawl(browser, cellline_links, output_path)
 
 def end_crawl(
     browser: Firefox,
     cellline_links: set,
-    out_path: Path = OUTPUT_PATH):
+    out_path: Path):
     browser.close()
     write_to_json(list(cellline_links), out_path)
 
@@ -125,12 +128,13 @@ def extract_celllines(cellline_links):
 
 if __name__ == '__main__':
     browser = build_browser(
-        start_url=ATCC_CELLLINES_PRIMARY_STEM_PRODUCTS_CATALOG_URL,
+        start_url=ATCC_CELLLINES_PRIMARY_STEM_PRODUCTS_NONHUMAN_CATALOG_URL,
         driver_path=FIREFOX_DRIVER_PATH,
         force_exec=FORCE_EXECUTION
     )
 
     crawl(
         browser,
-        limit=LIMIT_CATALOG_PAGES
+        limit=LIMIT_CATALOG_PAGES,
+        output_path=LINKS_PATH
     )
